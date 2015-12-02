@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <link rel="stylesheet" href="http://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.3/leaflet.css" />
+        <script src="http://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.3/leaflet.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+
+        <!-- Latest compiled and minified CSS -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+        <!-- Latest compiled and minified JavaScript -->
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+
+        <style>
+            body {
+                margin: 10px 10px 10px 10px;
+                padding: 0 0 0 0;
+            }
+            #resultMetadata {
+                margin-bottom: 20px;
+            }
+        </style>
+
+        <script type="text/javascript">
+            (function() {
+                var createQuery = function(queryText, sortByDistanceFromLatLng, take) {
+                    var queryObj = {
+                        query: {
+                            bool: {
+                                should: [
+                                    {
+                                        prefix: {
+                                            "full_address.original": {
+                                                value: queryText,
+                                                boost: 2.0
+                                            }
+                                        }
+                                    },
+                                    {
+                                        query_string: {
+                                            default_field: "full_address",
+                                            query: queryText
+                                        }
+                                    },
+                                    /*{
+                                        fuzzy: {
+                                            'full_address.original' : {
+                                                value: queryText,
+                                                fuzziness: 2
+                                            }
+                                        }
+                                    }*/
+                                ]
+                            }
+                        },
+                        /*sort : [
+                            {
+                                _geo_distance : {
+                                    location: {
+                                        "lat": 60.392296,
+                                        "lon": 5.310000
+                                    },
+                                    unit: "m",
+                                    order : "asc"
+                                }
+                            }
+                        ],*/
+                        size: (take ? take : 100)
+                    };
+
+
+                    if(sortByDistanceFromLatLng) {
+                        queryObj.sort = [
+                            {
+                                _geo_distance : {
+                                    location: {
+                                        "lat": sortByDistanceFromLatLng.lat,
+                                        "lon": sortByDistanceFromLatLng.lng
+                                    },
+                                    unit: "m",
+                                    order : "asc"
+                                }
+                            }
+                        ];
+                    }
+
+                    return queryObj;
+                }
+
+
+                var handleElasticResult = function(responseData, status) {
+                    var took = responseData.took,
+                        hitsHeader = responseData.hits,
+                        maxScore = hitsHeader.max_score,
+                        length = hitsHeader.length,
+                        total = hitsHeader.total,
+                        hits = hitsHeader.hits;
+
+                    // console.debug('hits', hits);
+
+                    $('#took').empty().text(took);
+                    $('#results').empty().text(total);
+
+                    var tableBody = $('table#resultTable tbody');
+                    tableBody.empty();
+
+                    $(hits).each(function(index, hit) {
+                        var source = hit._source,
+                            distance = (hit.sort && hit.sort.length > 0) ? hit.sort[0] : '-';
+
+                        var values = '<td>'+source.street+'</td>'
+                            + '<td>'+ (source.street_no != null ? source.street_no : '-') +'</td>'
+                            + '<td>'+source.zip+'</td>'
+                            + '<td>'+source.municipality+'</td>'
+                            + '<td>'+distance+'</td>'
+                            + '<td>'+ (hit._score != null ? hit._score : '-') +'</td>';
+
+                        tableBody.append('<tr>' + values + '</tr>')
+                    });
+                };
+
+                var submitQuery = function(query) {
+                    var position = $('#checkboxOrderByDistance').is(':checked')
+                        ? {
+                            lat: $('#inputLatitude').val(),
+                            lng:  $('#inputLongitude').val()
+                        }
+                        : null;
+
+                    var queryObj = createQuery(query, position, 200);
+                    $.post('http://localhost:9200/svippr/address/_search', {source: JSON.stringify(queryObj)}, handleElasticResult, 'jsonp');
+                };
+
+                $(document).ready(function() {
+
+                    $('input#query').keyup(function(e) {
+                        var queryText = $('input#query').val();
+                        submitQuery(queryText);
+                    });
+
+                    $('#submit').click(function(e) {
+                        // var queryText = $(e.target).val();
+                        var queryText = $('input#query').val();
+                        submitQuery(queryText);
+                    });
+                });
+            })();
+        </script>
+    </head>
+    <body>
+
+        <div class="container-fluid">
+
+            <div class="row">
+                <div class="col-md-offset-3 col-md-6">
+
+                    <form>
+                        <div class="form-group form-group-lg">
+                            <!-- <label for="exampleInputEmail1">Email address</label> -->
+                            <input type="search" class="form-control" id="query" placeholder="Query">
+                            <a id="submit" href="#">Re-submit</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-offset-3 col-md-6">
+
+                    <form class="form-horizontal">
+
+                        <div class="form-group">
+                            <label for="inputLatitude" class="col-sm-2 control-label">Latitude</label>
+                            <div class="col-sm-3">
+                                <input type="text" class="form-control" id="inputLatitude" placeholder="Latitude" value="60.342342" />
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="inputLongitude" class="col-sm-2 control-label">Longitude</label>
+                            <div class="col-sm-3">
+                                <input type="text" class="form-control" id="inputLongitude" placeholder="Longitude" value="5.384088" />
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="checkbox col-sm-offset-2 col-sm-10">
+                                <label>
+                                    <input type="checkbox" id="checkboxOrderByDistance" /> Order by distance
+                                </label>
+                            </div>
+                        </div>
+
+                    </form>
+
+                </div>
+            </div>
+
+            <div class="row" style="height: 90%;">
+
+                <div class="col-md-offset-1 col-md-10">
+                    <div id="resultWrapper">
+
+                        <div id="resultMetadata">
+                            <div><span id="took">0</span> ms, <span id="results">0</span> results</div>
+                        </div>
+                        <div>
+                            <table id="resultTable" class="table table-hover">
+                                <thead>
+                                    <th>Gate</th>
+                                    <th>Nr</th>
+                                    <th>Postnummer</th>
+                                    <th>Kommunenummer</th>
+                                    <th>Avstand (m)</th>
+                                    <th>Score</th>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </body>
+</html>

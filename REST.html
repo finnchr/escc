@@ -1,0 +1,99 @@
+﻿<html>
+   <head>
+      <meta charset="utf-8" />
+      <title>Enkel bruk av REST-api</title>
+   </head>
+<body>
+
+<h1 id="enkel-bruk-av-rest-api">Enkel bruk av REST-api</h1>
+
+<p>Vi har ikke opprettet noen index, så Elasticsearch oppretter en for oss automatisk. Elasticsearch opprettet også dynamisk type for dokumentene.</p>
+
+<h3 id="vi-indexerer-vårt-første-dokument">Vi indexerer vårt første dokument</h3>
+
+<p><code>[POST] http://localhost:9200/evry/ansatt</code></p>
+
+
+
+<pre class="prettyprint"><code class=" hljs json">{
+   "<span class="hljs-attribute">navn</span>": <span class="hljs-value"><span class="hljs-string">"Ola Normann"</span></span>,
+   "<span class="hljs-attribute">ansatt_dato</span>": <span class="hljs-value"><span class="hljs-string">"2015-01-01"</span></span>,
+   "<span class="hljs-attribute">rolle</span>": <span class="hljs-value"><span class="hljs-string">"Utvikler"</span>
+
+</span>}</code></pre>
+
+
+
+<h3 id="finn-dokument-i-index">Finn dokument i index</h3>
+
+<p><code>[GET] http://localhost:9200/evry/_search?q=*</code></p>
+
+<p><code>[GET] http://localhost:9200/evry/_search?q=navn:Ola*</code></p>
+
+
+
+<h3 id="indexer-dokument-med-gitt-id">Indexer dokument med gitt ID</h3>
+
+<p>Merk at vi bruker PUT når vi oppgir ID (fungerer også med POST).</p>
+
+<p><code>[PUT] http://localhost:9200/evry/ansatt/123</code></p>
+
+<pre class="prettyprint"><code class=" hljs json">{
+
+   "<span class="hljs-attribute">navn</span>": <span class="hljs-value"><span class="hljs-string">"Kari Normann"</span></span>,
+
+   "<span class="hljs-attribute">ansatt_dato</span>": <span class="hljs-value"><span class="hljs-string">"2012-01-01"</span></span>,
+   "<span class="hljs-attribute">rolle</span>": <span class="hljs-value"><span class="hljs-string">"Utvikler"</span>
+
+</span>}</code></pre>
+
+
+
+<h3 id="hent-dokument-basert-på-id">Hent dokument basert på ID</h3>
+
+<p><code>[GET] http://localhost:9200/evry/ansatt/123</code></p>
+
+<p><code>[GET] http://localhost:9200/evry/ansatt/123/_source</code></p>
+
+<p><code>[GET] http://localhost:9200/evry/ansatt/123?fields=navn,rolle</code></p>
+
+<p><code>[GET] http://localhost:9200/evry/ansatt/123?_source=false</code></p>
+
+<p><code>[GET] http://localhost:9200/evry/ansatt/123/_source=navn,rolle</code></p>
+
+
+
+<h3 id="oppdater-dokument">Oppdater dokument</h3>
+
+<p><code>[PUT] http://localhost:9200/evry/ansatt/{id}</code></p>
+
+
+
+<pre class="prettyprint"><code class=" hljs json">{
+   "<span class="hljs-attribute">navn</span>": <span class="hljs-value"><span class="hljs-string">"Kari Normann"</span></span>,
+   "<span class="hljs-attribute">ansatt_dato</span>": <span class="hljs-value"><span class="hljs-string">"2012-11-01"</span></span>,
+   "<span class="hljs-attribute">rolle</span>": <span class="hljs-value"><span class="hljs-string">"Utvikler"</span>
+</span>}</code></pre>
+
+
+
+<h3 id="oppdater-deler-av-dokument">Oppdater deler av dokument</h3>
+
+<p><code>[POST] http://localhost:9200/evry/ansatt/123/_update</code></p>
+
+
+
+<pre class="prettyprint"><code class=" hljs json">{
+   "<span class="hljs-attribute">doc</span>": <span class="hljs-value">{
+      "<span class="hljs-attribute">ansatt_dato</span>": <span class="hljs-value"><span class="hljs-string">"2010-11-01"</span>
+   </span>}
+</span>}</code></pre>
+
+
+
+<h3 id="slett-dokument">Slett dokument</h3>
+
+<p><code>[DELETE] http://localhost:9200/evry/ansatt/123</code></p>
+
+</body>
+</html>

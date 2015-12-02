@@ -1,0 +1,75 @@
+input {
+   # stdin {
+   # }
+   file {
+      path => [
+         "C:/Users/finnchr/Projects/escc-evry/data/Adresser-bergen.csv"
+         "C:/Users/finnchr/Projects/escc-evry/data/Adresser-drammen.csv",
+         "C:/Users/finnchr/Projects/escc-evry/data/Adresser-hurum.csv",
+         "C:/Users/finnchr/Projects/escc-evry/data/Adresser-hønefoss.csv",
+         "C:/Users/finnchr/Projects/escc-evry/data/Adresser-nedre-romerike.csv",
+         "C:/Users/finnchr/Projects/escc-evry/data/Adresser-trondheim.csv"
+      ]
+      codec => plain {
+         charset => "UTF-8"
+      }
+      start_position => "beginning"
+      # set document type
+      type => "address"
+      # tags => ["svippr", "address", "bergen"]
+      # Don't forget to delete sincedb before each run
+      sincedb_path => "SINCEDB"
+   }
+}
+
+filter {
+   csv {
+      separator => ";"
+      columns => ["area_no", "street_no", "comment", "zip", "longitude", "latitude", "street", "municipality"]
+      quote_char => "'"
+      add_field => {
+         "my_field" => "Some text ..."
+      }
+   }
+
+   # Drop header row
+   if [AreaNo] == "AreaNo" {
+       drop { }
+   }
+
+   mutate {
+      gsub => [
+         # replace NULL and #NAME? with empty string
+         "street_no", "NULL", "",
+         "comment", "NULL", "",
+         "comment", "#NAME?", "",
+
+         # replace commas with dots
+         "latitude", ",", ".",
+         "longitude", ",", "."
+      ]
+   }
+   mutate {
+      convert => [ "latitude", "float" ]
+      convert => [ "longitude", "float" ]
+
+      add_field => {
+         "full_address" => "%{street} %{street_no}"
+         "location" => ["%{longitude}", "%{latitude}"]
+      }
+
+      remove_field => ["latitude", "longitude", "message", "path"]
+   }
+}
+
+output {
+
+   elasticsearch {
+      action => "index"
+      hosts => ["localhost"]
+      index => "svippr"
+      template => "C:/Users/finnchr/Projects/escc/logstash-ex2/svippr-mapping.json"
+      template_name => "svippr"
+      template_overwrite => true
+    }
+}

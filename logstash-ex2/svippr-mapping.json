@@ -1,0 +1,52 @@
+{
+    "template": "svippr",
+    "settings" : {
+      "number_of_shards" : 1
+    },
+    "mappings": {
+        "address":{
+            "properties":{
+                "comment": {
+                    "type":"string"
+                },
+                "zip": {
+                    "type":"multi_field",
+                    "fields": {
+                        "original": {"type": "string", "index": "not_analyzed"},
+                        "zip": {"type": "string"}
+                    }
+                },
+                "street": {
+                    "type":"multi_field",
+                    "fields": {
+                        "original": {"type": "string", "index": "not_analyzed"},
+                        "street": {"type": "string"}
+                    }
+                },
+                "street_no": {
+                    "type":"string"
+                },
+                "area_no": {
+                    "type":"string"
+                },
+                "municipality": {
+                    "type":"multi_field",
+                    "fields": {
+                        "original": {"type": "string", "index": "not_analyzed"},
+                        "municipality": {"type": "string"}
+                    }
+                },
+                "location": {
+                    "type": "geo_point"
+                },
+                "full_address":{
+                    "type": "multi_field",
+                    "fields": {
+                        "original": {"type" : "string", "index" : "not_analyzed"},
+                        "full_address": { "type": "string" }
+                    }
+                }
+            }
+        }
+    }
+}

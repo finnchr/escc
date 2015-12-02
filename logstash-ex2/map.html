@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <link rel="stylesheet" href="http://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.3/leaflet.css" />
+        <script src="http://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.3/leaflet.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+
+        <!-- Latest compiled and minified CSS -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+        <!-- Latest compiled and minified JavaScript -->
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+
+        <style>
+            body {
+                margin: 10px 10px 10px 10px;
+                padding: 0 0 0 0;
+            }
+            #map {
+                border: 1px solid black;
+                display: inline-block;
+                width: 100%;
+                height: 600px;
+            }
+            /*
+            #resultWrapper {
+                border: 1px solid green;
+                display: inline-block;
+                width: 35%;
+                height: 90%;
+                font-size: .8em;
+                overflow: scroll;
+            }
+            #resultWrapper #submit {
+                font-size: 2em;
+                margin: 5px 5px 5px 5px;
+            }
+            #results table {
+                border-collapse: collapse;
+                border-spacing: 0px;
+            }
+            #results table,th,td {
+                padding: 5px;
+                border: 1px solid black;
+            }
+            #results table th {
+                text-align: left;
+            }
+
+        */
+        </style>
+
+        <script type="text/javascript">
+            (function() {
+                var map = undefined;
+
+                var registerOnClickListenerDrawingCircles = function(map, initalLocation) {
+                    var circle = L.circle(initalLocation, $('input#distance').val(), {
+                        color: 'red',
+                        fillColor: '#f03',
+                        fillOpacity: 0.5,
+                        clickable: false
+                    }).addTo(map);
+
+                    map.on('click', function(e) {
+                        circle.setLatLng(e.latlng);
+                    });
+
+                    $('input#distance').change(function() {
+                        if(circle) {
+                            circle.setRadius($('input#distance').val());
+                        }
+                    });
+
+                    return function() { return circle.getLatLng(); };
+                };
+
+                var registerOnClickListenerDrawingPolygon = function(map) {
+                    var polygon;
+
+                    map.on('click', function(e) {
+                        if(polygon) {
+                            polygon.addLatLng(e.latlng);
+                        }
+                        else {
+                            polygon = L.polygon([e.latlng]).addTo(map);
+                        }
+                    });
+
+                    return function() { return polygon; };
+                };
+
+
+                var createDistanceQuery = function(latLng, radius, take) {
+                    return {
+                        query: {
+                            filtered : {
+                                query : {
+                                    "match_all" : {}
+                                },
+                                filter : {
+                                    geo_distance : {
+                                        distance : radius+"m",
+                                        location: {
+                                            lat: latLng.lat,
+                                            lon: latLng.lng
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        sort : [
+                            {
+                                _geo_distance : {
+                                    location: {
+                                        lat: latLng.lat,
+                                        lon: latLng.lng
+                                    },
+                                    unit: "m",
+                                    order : "asc"
+                                }
+                            }
+                        ],
+                        size: (take ? take : 100)
+                    };
+                };
+
+
+                var createPolygonQuery = function(latLngs, centerLocation, take) {
+                    var points = [];
+                    $(latLngs).each(function(index, latLng) {
+                        points.push({ lat: latLng.lat, lon: latLng.lng });
+                    });
+
+                    return {
+                        query: {
+                            filtered : {
+                                query : {
+                                    match_all : {}
+                                },
+                                filter : {
+                                    geo_polygon : {
+                                        location: {
+                                            points: points
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        sort : [
+                            {
+                                _geo_distance : {
+                                    location: {
+                                        lat: centerLocation.lat,
+                                        lon: centerLocation.lng
+                                    },
+                                    unit: "m",
+                                    order : "asc"
+                                }
+                            }
+                        ],
+                        size: (take ? take : 100)
+                    }
+                };
+
+                var handleElasticResult = function(responseData, status) {
+                    //console.debug(responseData);
+
+                    var took = responseData.took,
+                        hitsHeader = responseData.hits,
+                        maxScore = hitsHeader.max_score,
+                        length = hitsHeader.length,
+                        total = hitsHeader.total,
+                        hits = hitsHeader.hits;
+
+                    // console.debug('hits', hits);
+
+                    $('#took').empty().text(took);
+                    $('#results').empty().text(total);
+
+                    var tableBody = $('table#resultTable tbody');
+                    tableBody.empty();
+
+                    $(hits).each(function(index, hit) {
+                        var source = hit._source,
+                            distance = hit.sort[0];
+
+                        var values = '<td>'+source.street+'</td>'
+                            + '<td>'+ (source.street_no != null ? source.street_no : '-') +'</td>'
+                            + '<td>'+source.zip+'</td>'
+                            + '<td>'+source.municipality+'</td>'
+                            + '<td>'+distance+'</td>'
+                            + '<td>'+ (hit._score != null ? hit._score : '-') +'</td>';
+
+                        tableBody.append('<tr>' + values + '</tr>')
+                    });
+                };
+
+                var submitPolygon = function(getPolygon, map) {
+                    var center = getPolygon().getBounds().getCenter();
+
+                    if(submitPolygon.centerMarker) {
+                        submitPolygon.centerMarker.setLatLng(center);
+                    }
+                    else {
+                        submitPolygon.centerMarker = L.marker(center).addTo(map);
+                    }
+
+                    var query = createPolygonQuery(getPolygon().getLatLngs(), center, 200);
+                    $.post('http://localhost:9200/svippr/address/_search', {source: JSON.stringify(query)}, handleElasticResult, 'jsonp');
+                };
+
+                var submitPoint = function(getLatLng) {
+                    var latLng = getLatLng(),
+                        radius = $('input#distance').val();
+
+                    var query = createDistanceQuery(latLng, radius, 200);
+                    $.post('http://localhost:9200/svippr/address/_search', {source: JSON.stringify(query)}, handleElasticResult, 'jsonp');
+                };
+
+                $(document).ready(function() {
+                    var home = [60.342255, 5.384252];
+
+                    map = L.map('map').setView(home, 17);
+
+                    L.tileLayer( 'http://{s}.mqcdn.com/tiles/1.0.0/map/{z}/{x}/{y}.png', {
+                        attribution: '&copy; <a href="http://osm.org/copyright" title="OpenStreetMap" target="_blank">OpenStreetMap</a> contributors | Tiles Courtesy of <a href="http://www.mapquest.com/" title="MapQuest" target="_blank">MapQuest</a> <img src="http://developer.mapquest.com/content/osm/mq_logo.png" width="16" height="16">',
+                        subdomains: ['otile1','otile2','otile3','otile4']
+                    }).addTo(map);
+
+                    if(SHOW_POLYGON_MAP) {
+                        var getPolygon = registerOnClickListenerDrawingPolygon(map);
+                        $('#submit').click(function() { submitPolygon(getPolygon, map); });
+                        $('#resultWrapper > form').hide();
+                    }
+                    else if(SHOW_CIRCLE_MAP) {
+                        var getLatLng = registerOnClickListenerDrawingCircles(map, home);
+                        $('#submit').click(function() { submitPoint(getLatLng); });
+                    }
+                });
+
+                var SHOW_POLYGON_MAP = true;
+                var SHOW_CIRCLE_MAP = !SHOW_POLYGON_MAP;
+            })();
+        </script>
+    </head>
+    <body>
+
+        <div class="container-fluid">
+
+            <div class="row" style="height: 90%;">
+
+                <div class="col-md-6">
+                    <div id="map"></div>
+                </div>
+
+                <div class="col-md-6">
+                    <div id="resultWrapper">
+                        <a id="submit" href="#">Submit</a>
+
+                        <form>
+                            <label>Radius: <input type="number" id="distance" value="100"/> </label>
+                        </form>
+
+                        <h3>Results:</h3>
+
+                        <div>
+                            <div>Took <span id="took">0</span> ms</div>
+                            <div>Got <span id="results">0</span> results</div>
+                            <table id="resultTable" class="table table-hover">
+                                <thead>
+                                    <th>Gate</th>
+                                    <th>Nr</th>
+                                    <th>Postnummer</th>
+                                    <th>Kommunenummer</th>
+                                    <th>Avstand (m)</th>
+                                    <th>Score</th>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </body>
+</html>
