@@ -207,7 +207,7 @@
                     }
 
                     var query = createPolygonQuery(getPolygon().getLatLngs(), center, 200);
-                    $.post('http://localhost:9200/svippr/address/_search', {source: JSON.stringify(query)}, handleElasticResult, 'jsonp');
+                    $.get('http://localhost:9200/svippr/address/_search', {source: JSON.stringify(query)}, handleElasticResult);
                 };
 
                 var submitPoint = function(getLatLng) {
@@ -215,7 +215,7 @@
                         radius = $('input#distance').val();
 
                     var query = createDistanceQuery(latLng, radius, 200);
-                    $.post('http://localhost:9200/svippr/address/_search', {source: JSON.stringify(query)}, handleElasticResult, 'jsonp');
+                    $.get('http://localhost:9200/svippr/address/_search', {source: JSON.stringify(query)}, handleElasticResult);
                 };
 
                 $(document).ready(function() {

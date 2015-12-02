@@ -128,7 +128,7 @@
                         : null;
 
                     var queryObj = createQuery(query, position, 200);
-                    $.post('http://localhost:9200/svippr/address/_search', {source: JSON.stringify(queryObj)}, handleElasticResult, 'jsonp');
+                    $.get('http://localhost:9200/svippr/address/_search', {source: JSON.stringify(queryObj)}, handleElasticResult);
                 };
 
                 $(document).ready(function() {
