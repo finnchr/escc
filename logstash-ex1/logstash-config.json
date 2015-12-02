@@ -31,7 +31,7 @@ filter {
 output {
    elasticsearch {
       action => "index"
-      host => "localhost"
+      hosts => ["localhost"]
       index => "log"
       document_type => "%{name}"
       template_overwrite => true
