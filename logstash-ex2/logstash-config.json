@@ -3,7 +3,7 @@ input {
    # }
    file {
       path => [
-         "C:/Users/finnchr/Projects/escc-evry/data/Adresser-bergen.csv"
+         "C:/Users/finnchr/Projects/escc-evry/data/Adresser-bergen.csv",
          "C:/Users/finnchr/Projects/escc-evry/data/Adresser-drammen.csv",
          "C:/Users/finnchr/Projects/escc-evry/data/Adresser-hurum.csv",
          "C:/Users/finnchr/Projects/escc-evry/data/Adresser-hønefoss.csv",
