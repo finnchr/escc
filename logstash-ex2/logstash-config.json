@@ -3,12 +3,12 @@ input {
    # }
    file {
       path => [
-         "C:/Users/finnchr/Projects/escc-evry/data/Adresser-bergen.csv",
-         "C:/Users/finnchr/Projects/escc-evry/data/Adresser-drammen.csv",
-         "C:/Users/finnchr/Projects/escc-evry/data/Adresser-hurum.csv",
-         "C:/Users/finnchr/Projects/escc-evry/data/Adresser-hønefoss.csv",
-         "C:/Users/finnchr/Projects/escc-evry/data/Adresser-nedre-romerike.csv",
-         "C:/Users/finnchr/Projects/escc-evry/data/Adresser-trondheim.csv"
+         "C:/Users/finnchr/Projects/evry-escc/data/Adresser-bergen.csv",
+         "C:/Users/finnchr/Projects/evry-escc/data/Adresser-drammen.csv",
+         "C:/Users/finnchr/Projects/evry-escc/data/Adresser-hurum.csv",
+         "C:/Users/finnchr/Projects/evry-escc/data/Adresser-hønefoss.csv",
+         "C:/Users/finnchr/Projects/evry-escc/data/Adresser-nedre-romerike.csv",
+         "C:/Users/finnchr/Projects/evry-escc/data/Adresser-trondheim.csv"
       ]
       codec => plain {
          charset => "UTF-8"
